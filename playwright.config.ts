@@ -70,6 +70,8 @@ export default defineConfig({
     {
       name: 'api',
       testMatch: '**/api/**/*.spec.ts',
+      // ParaBank returns XML unless JSON is requested explicitly.
+      use: { extraHTTPHeaders: { Accept: 'application/json' } },
     },
 
     // Visual regression — Chromium only, stable snapshots

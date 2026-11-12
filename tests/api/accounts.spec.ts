@@ -23,7 +23,7 @@ test.describe('Accounts API', () => {
   }) => {
     // First get customer id via login
     const loginRes = await request.get(
-      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/password/${PASSWORD}`,
+      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/${PASSWORD}`,
     );
     expect(loginRes.status()).toBe(200);
 
@@ -52,7 +52,7 @@ test.describe('Accounts API', () => {
   }) => {
     // Login to get customer/account IDs
     const loginRes = await request.get(
-      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/password/${PASSWORD}`,
+      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/${PASSWORD}`,
     );
     const customer = await loginRes.json();
 
@@ -75,7 +75,7 @@ test.describe('Accounts API', () => {
     request,
   }) => {
     const loginRes = await request.get(
-      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/password/${PASSWORD}`,
+      `${BASE_URL}/parabank/services/bank/login/${USERNAME}/${PASSWORD}`,
     );
     const customer = await loginRes.json();
 

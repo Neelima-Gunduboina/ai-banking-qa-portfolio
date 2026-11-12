@@ -28,7 +28,6 @@ test.describe('Dashboard & Accounts Overview', () => {
 
   test('TC-D-03: accounts table shows account IDs and balances', async ({
     accountsPage,
-    page,
   }) => {
     await accountsPage.assertPageLoaded();
     const accounts = await accountsPage.getAccounts();

@@ -21,7 +21,7 @@ test.describe('Customers API', () => {
     request,
   }) => {
     const res = await request.get(
-      `${API_BASE}/login/${USERNAME}/password/${PASSWORD}`,
+      `${API_BASE}/login/${USERNAME}/${PASSWORD}`,
     );
     expect(res.status()).toBe(200);
 
@@ -34,7 +34,7 @@ test.describe('Customers API', () => {
 
   test('TC-API-C-02: invalid credentials return error', async ({ request }) => {
     const res = await request.get(
-      `${API_BASE}/login/invalid_user_999/password/wrongpass`,
+      `${API_BASE}/login/invalid_user_999/wrongpass`,
     );
     expect([400, 401, 403, 500]).toContain(res.status());
   });
@@ -43,7 +43,7 @@ test.describe('Customers API', () => {
     request,
   }) => {
     const loginRes = await request.get(
-      `${API_BASE}/login/${USERNAME}/password/${PASSWORD}`,
+      `${API_BASE}/login/${USERNAME}/${PASSWORD}`,
     );
     const customer = await loginRes.json();
 
@@ -60,7 +60,7 @@ test.describe('Customers API', () => {
   }) => {
     // Step 1: authenticate
     const loginRes = await request.get(
-      `${API_BASE}/login/${USERNAME}/password/${PASSWORD}`,
+      `${API_BASE}/login/${USERNAME}/${PASSWORD}`,
     );
     expect(loginRes.status()).toBe(200);
     const customer = await loginRes.json();
@@ -85,7 +85,7 @@ test.describe('Customers API', () => {
 
   test('TC-API-C-05: response Content-Type is JSON', async ({ request }) => {
     const res = await request.get(
-      `${API_BASE}/login/${USERNAME}/password/${PASSWORD}`,
+      `${API_BASE}/login/${USERNAME}/${PASSWORD}`,
     );
     const contentType = res.headers()['content-type'];
     expect(contentType).toContain('json');

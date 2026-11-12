@@ -39,7 +39,6 @@ test.describe('Fund Transfer', () => {
 
   test('TC-T-03: transfer with zero amount shows validation error', async ({
     page,
-    transferPage,
   }) => {
     // Enter 0 amount
     await page.locator('#amount').fill('0');
@@ -61,7 +60,6 @@ test.describe('Fund Transfer', () => {
 
   test('TC-T-05: successful fund transfer completes with confirmation', async ({
     page,
-    transferPage,
   }) => {
     // Wait for accounts to load
     await page.waitForFunction(

@@ -7,7 +7,7 @@
  * backend processing are caught by API tests even when UI appears unchanged.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -17,13 +17,13 @@ const PASSWORD = process.env.PARABANK_PASSWORD ?? 'demo';
 const API_BASE = `${BASE_URL}/parabank/services/bank`;
 
 /** Helper: login and return { customerId, accounts[] } */
-async function loginAndGetAccounts(request: Parameters<typeof test>[1] extends { request: infer R } ? R : never) {
-  const loginRes = await (request as import('@playwright/test').APIRequestContext).get(
-    `${BASE_URL}/parabank/services/bank/login/${USERNAME}/password/${PASSWORD}`,
+async function loginAndGetAccounts(request: APIRequestContext) {
+  const loginRes = await request.get(
+    `${BASE_URL}/parabank/services/bank/login/${USERNAME}/${PASSWORD}`,
   );
   const customer = await loginRes.json();
 
-  const accountsRes = await (request as import('@playwright/test').APIRequestContext).get(
+  const accountsRes = await request.get(
     `${API_BASE}/customers/${customer.id}/accounts`,
   );
   const accounts = await accountsRes.json();

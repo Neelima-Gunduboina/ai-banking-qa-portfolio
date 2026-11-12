@@ -20,10 +20,10 @@
     "triage": "ts-node scripts/triage.ts",
     "update-snapshots": "playwright test --update-snapshots",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint ."
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.34.0",
+    "@anthropic-ai/sdk": "^1.8.0",
     "@axe-core/playwright": "^4.10.0",
     "axe-core": "^4.10.0",
     "dotenv": "^16.4.5"

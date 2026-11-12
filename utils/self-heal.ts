@@ -72,18 +72,17 @@ async function healLocator(
 ): Promise<string> {
   log.info(`[self-heal] Attempting to heal: "${intent}" (was: ${originalSelector})`);
 
-  // Capture accessibility snapshot (lightweight, no screenshot needed)
+  // Capture an ARIA snapshot (YAML; lightweight, no screenshot needed).
+  // page.accessibility was removed from Playwright; ariaSnapshot() replaces it.
   let snapshot: string;
   try {
-    snapshot = await page.accessibility.snapshot().then((s) =>
-      JSON.stringify(s, null, 2),
-    );
+    snapshot = await page.locator('body').ariaSnapshot();
   } catch {
     snapshot = await page.content();
   }
 
   const prompt = `Page accessibility snapshot:
-\`\`\`json
+\`\`\`yaml
 ${snapshot.slice(0, 8000)}
 \`\`\`
 
