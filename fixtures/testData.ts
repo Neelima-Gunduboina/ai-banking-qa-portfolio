@@ -65,8 +65,8 @@ export function makeTestData(): TestData {
       zipCode: 'EC1A 1BB',
       phone: '07700900000',
       ssn: '123-45-6789',
-      // Avoid common prefixes: ParaBank rejects any username that starts with
-      // an existing one (DEF-005), and someone has already registered "neelima".
+      // Random and at most 20 characters: ParaBank reports longer new
+      // usernames as "already exists" (DEF-005).
       uniqueUsername: () => uniqueUsername('reg'),
       password: 'SecurePass@2026',
     },

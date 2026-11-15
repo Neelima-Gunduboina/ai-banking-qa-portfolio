@@ -214,7 +214,7 @@ Running this suite against the live demo surfaced real issues, each covered by a
 |---|---|---|
 | **DEF-001**: transfer API accepts a negative amount | API | `TC-API-T-04` (`test.fail`, expected to fail until fixed) |
 | **DEF-004**: a $0.00 transfer (and a transfer to the same account) completes | UI + API | `TC-T-03` (`test.fail`) |
-| **DEF-005**: a username that merely *starts with* an existing one is rejected as "already exists" | UI | `TC-R-05` (`test.fail`) |
+| **DEF-005**: a new username over 20 characters is rejected as "already exists" | UI | `TC-R-05` (`test.fail`) |
 | **7 WCAG 2.1 AA issues**, e.g. unlabelled login fields and account dropdowns | All pages | `tests/a11y` (baseline; fails only on *new* issues) |
 
 Full defect reports live in the companion repo [qa-portfolio-parabank/docs/defects](https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/tree/main/docs/defects);

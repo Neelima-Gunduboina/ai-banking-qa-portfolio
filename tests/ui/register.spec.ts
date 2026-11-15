@@ -61,32 +61,31 @@ test.describe('Customer Registration', () => {
     expect(await errors.count()).toBeGreaterThan(5);
   });
 
-  test('TC-R-05: username that extends an existing one can be registered', async ({
+  test('TC-R-05: a new username over 20 characters is not reported as a duplicate', async ({
     registerPage,
     page,
     testData,
   }) => {
-    // Known defect: the duplicate check matches prefixes, so "abc123x" is
-    // rejected as "already exists" when "abc123" is taken.
+    // Known defect: a never-used 21+ character username is rejected with
+    // "This username already exists" instead of a length message.
     test.info().annotations.push({
       type: 'known-defect',
       description:
-        'DEF-005 https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/blob/main/docs/defects/DEF-005-username-prefix-treated-as-duplicate.md',
+        'DEF-005 https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/blob/main/docs/defects/DEF-005-long-username-reported-as-duplicate.md',
     });
     test.fail();
     const reg = testData.registration;
-    const base = reg.uniqueUsername();
+    const longUsername = `${reg.uniqueUsername()}abcdef`; // 26 characters, never used
 
     await registerPage.goto();
-    await registerPage.fillRegistrationForm({ ...reg, username: base, password: reg.password });
+    await registerPage.fillRegistrationForm({ ...reg, username: longUsername, password: reg.password });
     await registerPage.submit();
-    await registerPage.assertRegistrationSuccess();
-    await page.context().clearCookies(); // fresh visitor for the second sign-up
 
-    await registerPage.goto();
-    await registerPage.fillRegistrationForm({ ...reg, username: `${base}x`, password: reg.password });
-    await registerPage.submit();
-    await registerPage.assertRegistrationSuccess();
+    // Wait for the server's response page, then check it does not give the false reason.
+    // Fixed behaviour is either "account created" or a clear length message.
+    await page.waitForLoadState();
+    await expect(page.locator('#rightPanel h1')).toBeVisible();
+    await expect(page.getByText(/this username already exists/i)).toHaveCount(0);
   });
 
   test('TC-R-04: register link visible from login page', async ({

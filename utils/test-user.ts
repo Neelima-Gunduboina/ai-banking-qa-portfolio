@@ -31,15 +31,15 @@ export function envCredentials(): Credentials | undefined {
 }
 
 /**
- * A username no other customer can block: random letters after the prefix,
- * because ParaBank treats a name that merely starts with an existing username
- * as taken (DEF-005).
+ * A random username of at most 20 characters (prefix up to 7 + 4 letters + 9
+ * digits). ParaBank wrongly reports longer new usernames as "already exists"
+ * (DEF-005).
  */
 export function uniqueUsername(prefix = 'qa'): string {
   const letters = Array.from({ length: 4 }, () =>
     String.fromCharCode(97 + Math.floor(Math.random() * 26)),
   ).join('');
-  return `${prefix}${letters}${Date.now()}`;
+  return `${prefix}${letters}${Date.now() % 1_000_000_000}`;
 }
 
 export function saveCredentials(credentials: Credentials): void {
