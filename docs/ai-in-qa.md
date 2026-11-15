@@ -12,11 +12,15 @@ ensures AI assistance enhances rather than replaces QA judgement.
 When a Playwright locator fails to find an element, instead of immediately failing
 the test, the self-heal utility:
 
-1. Captures the current page's accessibility tree as JSON
-2. Sends the snapshot + the semantic intent of the element (e.g., *"Transfer Funds submit button"*) to the LLM
-3. Asks the LLM to identify the best new selector from the live DOM
-4. Caches the healed selector to `.locator-cache.json` so future calls skip the LLM
+1. Captures the current page's ARIA snapshot (YAML)
+2. Sends the snapshot + the intent of the element (e.g., *"the Log In submit button"*) to the LLM
+3. Accepts the suggested selector **only if it matches exactly one element**
+4. Logs the heal (old → new) and caches it locally in `.locator-cache.json` (gitignored)
 5. Returns the healed Playwright `Locator`
+
+The resolver is injectable, so `tests/ui/self-heal.spec.ts` checks the whole flow
+deterministically with a fake resolver; one extra test calls the real LLM when
+`ANTHROPIC_API_KEY` is set.
 
 ### Why it matters
 In agile banking projects, the frontend changes frequently (rebranding, accessibility
@@ -25,10 +29,10 @@ costs in test automation. Self-healing reduces false failures from selector drif
 surfaces *actual* application bugs more clearly.
 
 ### Human-in-the-loop safeguard
+- **Off in CI by default**: unless `SELF_HEAL=on` is set, a broken locator fails the pipeline instead of being patched
 - **All heals are logged** with before/after selectors — nothing happens silently
-- **The cache file is committed** to source control — every heal appears as a diff in a PR
-- **A human reviews cache diffs** before merging — if the LLM healed to a wrong element, it shows up clearly
-- Self-heal is a *development aid*, not a CI bypass. A test with a healed locator still needs a human to verify the new selector is semantically correct
+- **The cache is local only**: a heal is never the fix. A human checks the suggested selector and updates the page object
+- **Ambiguous suggestions are rejected**: a selector matching zero or several elements is never used
 
 ---
 
@@ -168,8 +172,7 @@ warnings for informational review.
 
 ### Why it matters
 UK financial services are legally required to meet WCAG 2.1 AA (Equality Act 2010,
-FCA guidance). From Royal London experience: accessibility testing was a mandatory
-sign-off gate for every release, not an afterthought. Integrating axe-core into CI
+FCA Consumer Duty). Integrating axe-core into CI
 means accessibility regressions are caught at the PR stage, not in UAT.
 
 ---

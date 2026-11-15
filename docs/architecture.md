@@ -117,7 +117,7 @@ ai-banking-qa-portfolio/
 
 | Feature | File | Trigger | Degrades Without Key |
 |---------|------|---------|----------------------|
-| Self-healing locators | `utils/self-heal.ts` | Locator not found | Falls back to original selector |
+| Self-healing locators | `utils/self-heal.ts` | Locator not found (off in CI unless `SELF_HEAL=on`) | Falls back to original selector |
 | AI test generation | `scripts/generate-tests.ts` | Manual `npm run generate-tests` | Logs warning, exits 0 |
 | Failure triage | `scripts/triage.ts` | Post-CI via GitHub Actions | Reports "UNKNOWN" category |
 | MCP browser control | `@playwright/mcp` | Manual / Claude session | Not in CI pipeline |

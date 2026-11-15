@@ -1,27 +1,26 @@
 /**
- * self-heal.ts — AI-powered self-healing locator utility.
+ * self-heal.ts — AI-assisted self-healing locator utility (opt-in).
  *
  * HOW IT WORKS
  * ─────────────
- * 1. Each locator is registered with a human-readable semantic intent
- *    (e.g. "the Transfer Funds submit button").
- * 2. On every `locate()` call the helper first tries the original selector.
- * 3. If that selector throws (element not found / stale), it captures an
- *    accessibility snapshot of the current page, sends it to the LLM with
- *    the semantic intent, and asks for a new CSS/ARIA selector.
- * 4. The healed selector is cached in `.locator-cache.json` so subsequent
- *    calls skip the LLM entirely — keeping tests fast.
- * 5. If the LLM is unavailable (no API key) or returns nothing useful, the
- *    original selector is returned unchanged so the test fails with a clear
- *    Playwright error rather than a silent hang.
+ * 1. A locator is registered with a human-readable intent
+ *    (e.g. "the Log In submit button").
+ * 2. `locate()` tries a previously healed selector from the local cache,
+ *    then the original selector.
+ * 3. If neither matches, a resolver is asked for a replacement. The default
+ *    resolver sends the page's ARIA snapshot and the intent to the LLM.
+ * 4. A healed selector is only accepted if it matches exactly one element.
+ * 5. Accepted heals are logged (old → new) and cached in `.locator-cache.json`
+ *    (gitignored, local to the machine).
  *
- * HUMAN-IN-THE-LOOP SAFEGUARD
- * ────────────────────────────
- * Self-healing is a *development aid*, not a silent test patcher.
- * - Every heal is logged with the old and new selector.
- * - The cache file is committed to source control so the team reviews drifts.
- * - Tests are never silently re-run with a healed locator in CI without a
- *   human reviewing the cache diff in the PR.
+ * HUMAN-IN-THE-LOOP SAFEGUARDS
+ * ─────────────────────────────
+ * - Healing is OFF in CI unless SELF_HEAL=on is set explicitly, so a broken
+ *   locator fails the pipeline instead of being silently patched.
+ * - The cache is a local convenience, not a fix. Every heal is logged, and a
+ *   human must copy the reviewed selector into the page object.
+ * - The resolver is injectable, so the healing flow is tested deterministically
+ *   without an API key (see tests/ui/self-heal.spec.ts).
  */
 
 import * as fs from 'fs';
@@ -30,50 +29,61 @@ import { Locator, Page } from '@playwright/test';
 import { chat } from './llm-client';
 import { log } from './logger';
 
-const CACHE_FILE = path.resolve(process.cwd(), '.locator-cache.json');
+const DEFAULT_CACHE_FILE = path.resolve(process.cwd(), '.locator-cache.json');
+
+/** Returns a replacement selector, or null when it cannot find the element. */
+export type SelectorResolver = (
+  page: Page,
+  intent: string,
+  brokenSelector: string,
+) => Promise<string | null>;
+
+export interface SelfHealOptions {
+  /** Defaults to the LLM resolver. Inject a fake one in tests. */
+  resolver?: SelectorResolver;
+  /** Defaults to .locator-cache.json in the working directory. */
+  cacheFile?: string;
+}
 
 type LocatorCache = Record<string, string>;
 
-function loadCache(): LocatorCache {
+function loadCache(file: string): LocatorCache {
   try {
-    if (fs.existsSync(CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8')) as LocatorCache;
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf-8')) as LocatorCache;
     }
   } catch {
-    // Corrupt cache — start fresh
+    log.warn(`[self-heal] Ignoring unreadable cache file ${file}`);
   }
   return {};
 }
 
-function saveCache(cache: LocatorCache): void {
+function saveCache(file: string, cache: LocatorCache): void {
   try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8');
+    fs.writeFileSync(file, JSON.stringify(cache, null, 2), 'utf-8');
   } catch (err) {
     log.warn(`[self-heal] Could not persist cache: ${String(err)}`);
   }
 }
 
+/** Healing runs locally by default; in CI it must be switched on explicitly. */
+export function healingEnabled(): boolean {
+  if (process.env.SELF_HEAL === 'off') return false;
+  if (process.env.CI) return process.env.SELF_HEAL === 'on';
+  return true;
+}
+
 const SYSTEM_PROMPT = `You are a Playwright test automation expert.
-Given an accessibility snapshot of a web page and a semantic description of an element,
-return a single CSS selector or ARIA role selector that uniquely identifies that element.
+Given an accessibility snapshot of a web page and a description of an element,
+return a single CSS selector that uniquely identifies that element.
 
 Rules:
-- Prefer data-testid, aria-label, role+name selectors over fragile class/index selectors.
-- Return ONLY the selector string on a single line — no explanation, no code block.
-- If you cannot identify the element with confidence, return the string: UNABLE_TO_HEAL`;
+- Prefer id, name, aria-label or data-testid attributes over class or position.
+- Return ONLY the selector on a single line — no explanation, no code block.
+- If you cannot identify the element with confidence, return: UNABLE_TO_HEAL`;
 
-/**
- * Attempt to heal a broken selector using the LLM and the live page snapshot.
- */
-async function healLocator(
-  page: Page,
-  intent: string,
-  originalSelector: string,
-): Promise<string> {
-  log.info(`[self-heal] Attempting to heal: "${intent}" (was: ${originalSelector})`);
-
-  // Capture an ARIA snapshot (YAML; lightweight, no screenshot needed).
-  // page.accessibility was removed from Playwright; ariaSnapshot() replaces it.
+/** Default resolver: asks the LLM, using the page's ARIA snapshot as context. */
+export const llmResolver: SelectorResolver = async (page, intent, brokenSelector) => {
   let snapshot: string;
   try {
     snapshot = await page.locator('body').ariaSnapshot();
@@ -86,94 +96,97 @@ async function healLocator(
 ${snapshot.slice(0, 8000)}
 \`\`\`
 
-Semantic intent: "${intent}"
-Previous selector (now broken): "${originalSelector}"
+Element: "${intent}"
+Previous selector (now broken): "${brokenSelector}"
 
 Return the best new selector for this element.`;
 
   const response = await chat(prompt, SYSTEM_PROMPT);
+  if (!response || response.content.includes('UNABLE_TO_HEAL')) return null;
+  return response.content.trim().replace(/^['"`]|['"`]$/g, '');
+};
 
-  if (!response || response.content.includes('UNABLE_TO_HEAL')) {
-    log.warn(`[self-heal] LLM could not heal "${intent}" — falling back to original`);
-    return originalSelector;
-  }
-
-  const healed = response.content.trim().replace(/^['"`]|['"`]$/g, '');
-  log.info(`[self-heal] Healed "${intent}": ${originalSelector} → ${healed}`);
-  return healed;
-}
-
-/**
- * SelfHealingLocator — wraps a Playwright Locator with intent-based healing.
- *
- * @example
- * const submitBtn = new SelfHealingLocator(page, '#submit', 'Transfer Funds submit button');
- * const locator = await submitBtn.locate();
- * await locator.click();
- */
 export class SelfHealingLocator {
+  private readonly resolver: SelectorResolver;
+  private readonly cacheFile: string;
+  private readonly cacheKey: string;
   private cache: LocatorCache;
-  private cacheKey: string;
+
+  /** The selector the last locate() call settled on (for logging and assertions). */
+  resolvedSelector: string;
 
   constructor(
     private readonly page: Page,
     private readonly originalSelector: string,
     private readonly intent: string,
+    options: SelfHealOptions = {},
   ) {
-    this.cache = loadCache();
+    this.resolver = options.resolver ?? llmResolver;
+    this.cacheFile = options.cacheFile ?? DEFAULT_CACHE_FILE;
+    this.cache = loadCache(this.cacheFile);
     this.cacheKey = `${intent}::${originalSelector}`;
+    this.resolvedSelector = originalSelector;
   }
 
-  /**
-   * Resolves the best available locator for this element.
-   * Uses cache → original selector → LLM heal, in that order.
-   */
+  /** Resolves a locator: cached heal → original selector → resolver. */
   async locate(): Promise<Locator> {
-    // 1. Cached healed selector (fast path)
     const cached = this.cache[this.cacheKey];
-    if (cached && cached !== this.originalSelector) {
+    if (cached && (await this.matchesExactlyOne(cached))) {
       log.debug(`[self-heal] Using cached selector for "${this.intent}": ${cached}`);
-      const loc = this.page.locator(cached);
-      if (await loc.count() > 0) return loc;
-      // Cache miss at runtime — fall through to re-heal
-      log.warn(`[self-heal] Cached selector stale for "${this.intent}", re-healing`);
+      return this.use(cached);
     }
 
-    // 2. Try original selector
-    const original = this.page.locator(this.originalSelector);
-    if (await original.count() > 0) return original;
-
-    // 3. LLM heal
-    const healed = await healLocator(this.page, this.intent, this.originalSelector);
-
-    if (healed !== this.originalSelector) {
-      this.cache[this.cacheKey] = healed;
-      saveCache(this.cache);
+    if ((await this.page.locator(this.originalSelector).count()) > 0) {
+      return this.use(this.originalSelector);
     }
 
-    return this.page.locator(healed);
+    if (!healingEnabled()) {
+      log.warn(`[self-heal] "${this.intent}" not found and healing is disabled — failing on original selector`);
+      return this.use(this.originalSelector);
+    }
+
+    log.info(`[self-heal] Healing "${this.intent}" (was: ${this.originalSelector})`);
+    const healed = await this.resolver(this.page, this.intent, this.originalSelector);
+
+    if (!healed || !(await this.matchesExactlyOne(healed))) {
+      log.warn(`[self-heal] Rejected heal for "${this.intent}": ${healed ?? 'no suggestion'}`);
+      return this.use(this.originalSelector);
+    }
+
+    log.warn(`[self-heal] HEALED "${this.intent}": ${this.originalSelector} → ${healed} — update the page object`);
+    this.cache[this.cacheKey] = healed;
+    saveCache(this.cacheFile, this.cache);
+    return this.use(healed);
   }
 
-  /** Convenience: locate and click in one call. */
   async click(): Promise<void> {
-    const loc = await this.locate();
-    await loc.click();
+    await (await this.locate()).click();
   }
 
-  /** Convenience: locate and fill in one call. */
   async fill(value: string): Promise<void> {
-    const loc = await this.locate();
-    await loc.fill(value);
+    await (await this.locate()).fill(value);
+  }
+
+  private async matchesExactlyOne(selector: string): Promise<boolean> {
+    try {
+      return (await this.page.locator(selector).count()) === 1;
+    } catch {
+      return false; // invalid selector syntax from the resolver
+    }
+  }
+
+  private use(selector: string): Locator {
+    this.resolvedSelector = selector;
+    return this.page.locator(selector);
   }
 }
 
-/**
- * Factory helper — use this in page objects for intent-annotated locators.
- */
+/** Factory helper for page objects and tests. */
 export function selfHeal(
   page: Page,
   selector: string,
   intent: string,
+  options?: SelfHealOptions,
 ): SelfHealingLocator {
-  return new SelfHealingLocator(page, selector, intent);
+  return new SelfHealingLocator(page, selector, intent, options);
 }

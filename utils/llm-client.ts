@@ -2,7 +2,7 @@
  * llm-client.ts
  *
  * Thin wrapper around the Anthropic SDK used by every GenAI feature in this
- * framework: self-healing locators, AI test generation, and failure triage.
+ * framework: the self-healing resolver, AI test generation, and failure triage.
  *
  * Design decisions:
  * - Single shared instance (module-level singleton) keeps configuration DRY.
@@ -31,11 +31,6 @@ function getClient(): Anthropic | null {
     _client = new Anthropic({ apiKey: API_KEY });
   }
   return _client;
-}
-
-export interface LlmMessage {
-  role: 'user' | 'assistant';
-  content: string;
 }
 
 export interface LlmResponse {
@@ -86,51 +81,6 @@ export async function chat(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error(`[llm-client] Request failed: ${msg}`);
-    return null;
-  }
-}
-
-/**
- * Multi-turn conversation helper (used by self-heal when additional context
- * rounds are needed).
- */
-export async function multiTurnChat(
-  messages: LlmMessage[],
-  systemPrompt?: string,
-): Promise<LlmResponse | null> {
-  const client = getClient();
-  if (!client) return null;
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    const response = await client.messages.create(
-      {
-        model: MODEL,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages,
-      },
-      { signal: controller.signal },
-    );
-
-    clearTimeout(timer);
-
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { type: 'text'; text: string }).text)
-      .join('');
-
-    return {
-      content: text,
-      model: response.model,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log.error(`[llm-client] Multi-turn request failed: ${msg}`);
     return null;
   }
 }

@@ -2,25 +2,16 @@
 // AI-GENERATED TEST SPEC — REQUIRES HUMAN REVIEW BEFORE USE IN CI
 // =============================================================================
 // Source requirement: requirements/REQ-001-login.md
-// Generated: 2025-01-15T10:00:00.000Z (example — shows workflow output)
-// Model: claude-sonnet-4-6
-// Tokens: 1842 in / 967 out
+// Generated with scripts/generate-tests.ts (Claude), then reviewed by hand.
 //
-// REVIEW CHECKLIST (completed 2025-01-15 by Neelima Gunduboina):
-// [x] Selectors verified against live ParaBank application
-// [x] Test data values confirmed (john/demo is the live demo account)
-// [x] Negative test assertions match actual ParaBank error messages
-// [x] Each test runs in isolation (storageState overridden to unauthenticated)
-// [x] Tests reviewed — left in ai-generated/ to demonstrate workflow
-//
-// RE-REVIEW (2026-11-15), after the first real run against the live site:
-// [!] john/demo no longer exists (the demo resets) — tests now use the
-//     customer registered by tests/auth.setup.ts
+// REVIEW (2026-11-15), after running the draft against the live site:
+// [!] The draft used the john/demo account, which no longer exists (the demo
+//     resets) — tests now use the customer registered by tests/auth.setup.ts
 // [!] The LLM located inputs with getByLabel('Username'/'Password'), but
 //     ParaBank's login inputs have no <label> (see docs/accessibility-findings.md
 //     A11Y-02), so those locators matched nothing — replaced with name selectors.
 // Lesson: "looks plausible" is not "verified" — run generated tests against the
-// real application before signing off the checklist.
+// real application before trusting them.
 // =============================================================================
 
 /**

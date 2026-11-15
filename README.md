@@ -15,8 +15,8 @@
 ## About This Project
 
 I am a QA Engineer with **4+ years of manual testing experience** in:
-- **Banking** — FLEXCUBE core banking: fund transfers, GL postings, account management, payments
-- **Insurance** — Royal London: policy lifecycle, claims processing, portal accessibility compliance
+- **Banking** — Citi Bank, Oracle FLEXCUBE core banking: fund transfers, payments, SWIFT messaging, account management, maker-checker
+- **Insurance** — Royal London: migration and release testing, policy lifecycle, contribution processing, API testing with Postman
 
 This portfolio project demonstrates that I can **both write solid automation AND apply
 GenAI tooling intelligently** — not as a buzzword, but as a practical force-multiplier
@@ -28,7 +28,7 @@ with clear human oversight at every step.
 
 | Feature | Implementation | What It Proves |
 |---------|---------------|----------------|
-| **Self-Healing Locators** | `utils/self-heal.ts` | Reduces locator maintenance cost; LLM re-resolves broken selectors from the accessibility tree |
+| **Self-Healing Locators** | `utils/self-heal.ts`, proven in `tests/ui/self-heal.spec.ts` | Opt-in helper: when a selector breaks, the LLM proposes a new one from the ARIA snapshot; accepted only if it matches exactly one element, and disabled in CI by default |
 | **AI Test Generation** | `scripts/generate-tests.ts` | Accelerates test design from requirements; human review gate before CI inclusion |
 | **LLM Failure Triage** | `scripts/triage.ts` | Classifies failures (real bug / flaky / locator drift / env issue) in CI; reduces manual triage time |
 | **Playwright MCP** | `docs/mcp-setup.md` | Natural-language → browser action execution via Claude; accessibility-tree-driven |
@@ -44,13 +44,11 @@ with clear human oversight at every step.
 
 | Test Coverage | Maps to Real-World Experience |
 |--------------|-------------------------------|
-| Login / session management | FLEXCUBE authentication module; portal access control testing |
-| Fund transfer (UI + API) | FLEXCUBE internal transfer module; GL debit/credit validation |
-| Bill payment | FLEXCUBE outgoing payment; Royal London premium payment flows |
-| Accounts overview | Account summary screen; balance reconciliation validation |
-| API chained workflows | Postman collection chains I built for FLEXCUBE REST integration testing |
-| Accessibility (WCAG 2.1 AA) | FCA-mandated accessibility requirements at Royal London |
-| Visual regression | UI sign-off process for customer-facing portal releases |
+| Fund transfer (UI + API) | FLEXCUBE fund transfers and payments: debit/credit and balance checks |
+| Negative and boundary input | Invalid-input, special-character and field validation on transaction screens |
+| Accounts overview | Account management screens; SQL backend validation of balances |
+| API tests | API testing with Postman at Royal London: status codes, valid/invalid input, error handling |
+| End-to-end flows | Maker-checker and end-to-end transaction testing across environments |
 
 ---
 
