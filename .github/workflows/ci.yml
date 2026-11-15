@@ -67,8 +67,16 @@ jobs:
           # If absent, self-heal/triage degrade gracefully; tests still run
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Upload test results
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-shard-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 14
+
+      - name: Upload test results (screenshots, diffs)
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-shard-${{ matrix.shard }}
@@ -103,15 +111,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download all shard results
+      - name: Download blob reports from all shards
         uses: actions/download-artifact@v4
         with:
-          pattern: test-results-shard-*
+          pattern: blob-report-shard-*
           merge-multiple: true
-          path: test-results/
+          path: all-blob-reports/
 
       - name: Merge Playwright reports
-        run: npx playwright merge-reports --reporter html,json ./test-results
+        run: npx playwright merge-reports --reporter html,json ./all-blob-reports
+        env:
+          # The json reporter writes here so the triage step can read it
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/results.json
 
       - name: Upload merged HTML report
         uses: actions/upload-artifact@v4

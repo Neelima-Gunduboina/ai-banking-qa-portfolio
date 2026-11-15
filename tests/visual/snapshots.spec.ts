@@ -30,14 +30,10 @@ test.describe('Visual Regression', () => {
   test('TC-VIS-02: accounts overview matches baseline', async ({ page }) => {
     await page.goto('/parabank/overview.htm');
     await page.waitForLoadState('networkidle');
-    // Mask account balances (they change with transactions)
-    await expect(page).toHaveScreenshot('accounts-overview.png', {
-      maxDiffPixelRatio: 0.03,
-      mask: [
-        page.locator('#accountTable tbody'),
-        page.locator('#accountTable tfoot'),
-      ],
-    });
+    // Hide the account rows: their number and balances change as tests run,
+    // which would change the page height as well as the pixels
+    await page.addStyleTag({ content: '#accountTable tbody tr { display: none; }' });
+    await expect(page).toHaveScreenshot('accounts-overview.png', { maxDiffPixelRatio: 0.03 });
   });
 
   test('TC-VIS-03: transfer funds page matches baseline', async ({ page }) => {

@@ -10,11 +10,15 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 4 : undefined,
 
-  reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['list'],
-    ['json', { outputFile: 'test-results/results.json' }],
-  ],
+  // CI shards write blob reports that the report job merges into one HTML
+  // report + results.json (for AI triage); local runs get them directly.
+  reporter: process.env.CI
+    ? [['blob'], ['list']]
+    : [
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['list'],
+        ['json', { outputFile: 'test-results/results.json' }],
+      ],
 
   use: {
     baseURL: process.env.BASE_URL || 'https://parabank.parasoft.com',
