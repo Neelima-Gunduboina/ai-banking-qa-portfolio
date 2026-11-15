@@ -13,13 +13,17 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Visual Regression', () => {
-  test('TC-VIS-01: login page matches baseline', async ({ page }) => {
-    await page.goto('/parabank/index.htm');
-    await page.waitForLoadState('networkidle');
-    // Mask dynamic elements that change between runs
-    await expect(page).toHaveScreenshot('login-page.png', {
-      maxDiffPixelRatio: 0.02,
-      mask: [page.locator('.footer-copyright')],
+  test.describe('anonymous', () => {
+    test.use({ storageState: { cookies: [], origins: [] } }); // the login page is for signed-out visitors
+
+    test('TC-VIS-01: login page matches baseline', async ({ page }) => {
+      await page.goto('/parabank/index.htm');
+      await page.waitForLoadState('networkidle');
+      // Mask the "Latest News" date, which changes every day
+      await expect(page).toHaveScreenshot('login-page.png', {
+        maxDiffPixelRatio: 0.02,
+        mask: [page.locator('ul.events li.captionthree')],
+      });
     });
   });
 

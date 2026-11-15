@@ -5,9 +5,9 @@
 > Playwright MCP browser control. Built against ParaBank, a public banking demo
 > that mirrors real-world fund transfer, bill payment, and account management flows.
 
-[![CI](https://github.com/YOUR_GITHUB_USERNAME/ai-banking-qa-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/ai-banking-qa-portfolio/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
-[![Playwright](https://img.shields.io/badge/Playwright-1.49-green)](https://playwright.dev/)
+[![CI](https://github.com/Neelima-Gunduboina/ai-banking-qa-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/Neelima-Gunduboina/ai-banking-qa-portfolio/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-1.65-green)](https://playwright.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
@@ -58,15 +58,15 @@ with clear human oversight at every step.
 
 | Category | Technology |
 |----------|-----------|
-| Language | TypeScript 5.6 / Node 22 |
-| Test framework | Playwright Test 1.49 |
+| Language | TypeScript 5.9 / Node 22 |
+| Test framework | Playwright Test 1.65 |
 | Pattern | Page Object Model + typed fixtures |
 | API testing | Playwright `APIRequestContext` (built-in) |
 | Visual testing | Playwright `toHaveScreenshot` |
 | Accessibility | `@axe-core/playwright` |
-| AI / LLM | Anthropic SDK (`claude-sonnet-4-6`) |
+| AI / LLM | Anthropic SDK (`claude-sonnet-5-5`, configurable via `LLM_MODEL`) |
 | Reporting | Playwright HTML report + JSON |
-| CI/CD | GitHub Actions (sharded parallel, 4 workers) |
+| CI/CD | GitHub Actions (4 parallel shards) |
 
 ---
 
@@ -112,7 +112,7 @@ ai-banking-qa-portfolio/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_GITHUB_USERNAME/ai-banking-qa-portfolio.git
+git clone https://github.com/Neelima-Gunduboina/ai-banking-qa-portfolio.git
 cd ai-banking-qa-portfolio
 
 # 2. Install dependencies
@@ -123,8 +123,9 @@ npx playwright install --with-deps
 
 # 4. Configure environment
 cp .env.example .env
-# Edit .env — set PARABANK_USERNAME and PARABANK_PASSWORD
-# (Use the public demo: john / demo — or register a free account at parabank.parasoft.com)
+# Nothing to fill in for the core suite: the setup step registers a fresh
+# ParaBank customer for each run. Optionally set PARABANK_USERNAME/PASSWORD
+# to use an existing customer, and ANTHROPIC_API_KEY for the GenAI features.
 ```
 
 ### Running Tests
@@ -192,24 +193,44 @@ Artifacts retained per run:
 
 ## Screenshots
 
-> *Screenshots will be added after first successful CI run*
+These are the committed visual-regression baselines (Chromium on Linux, the same images CI compares against).
+Dynamic content such as balances and the news date is masked.
 
-| Login Page | Accounts Overview | Transfer Funds |
-|-----------|------------------|----------------|
-| *(screenshot placeholder)* | *(screenshot placeholder)* | *(screenshot placeholder)* |
+| Login | Accounts Overview |
+|---|---|
+| ![Login page](tests/visual/snapshots.spec.ts-snapshots/login-page-visual-linux.png) | ![Accounts overview](tests/visual/snapshots.spec.ts-snapshots/accounts-overview-visual-linux.png) |
 
-| AI Triage Report | Playwright HTML Report |
-|-----------------|----------------------|
-| *(GitHub Actions job summary screenshot)* | *(HTML report screenshot)* |
+| Transfer Funds | Bill Pay |
+|---|---|
+| ![Transfer funds](tests/visual/snapshots.spec.ts-snapshots/transfer-funds-page-visual-linux.png) | ![Bill pay](tests/visual/snapshots.spec.ts-snapshots/bill-payment-page-visual-linux.png) |
+
+---
+
+## Findings
+
+Running this suite against the live demo surfaced real issues, each covered by a test:
+
+| Finding | Where | Test |
+|---|---|---|
+| **DEF-001**: transfer API accepts a negative amount | API | `TC-API-T-04` (`test.fail`, expected to fail until fixed) |
+| **DEF-004**: a $0.00 transfer (and a transfer to the same account) completes | UI + API | `TC-T-03` (`test.fail`) |
+| **DEF-005**: a username that merely *starts with* an existing one is rejected as "already exists" | UI | `TC-R-05` (`test.fail`) |
+| **7 WCAG 2.1 AA issues**, e.g. unlabelled login fields and account dropdowns | All pages | `tests/a11y` (baseline; fails only on *new* issues) |
+
+Full defect reports live in the companion repo [qa-portfolio-parabank/docs/defects](https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/tree/main/docs/defects);
+the accessibility audit is in [docs/accessibility-findings.md](docs/accessibility-findings.md).
+
+`test.fail()` is Playwright's way to mark a known bug: CI stays green while the bug is open, and the test reports
+"unexpectedly passed" the moment it is fixed, so the marker gets removed instead of forgotten.
 
 ---
 
 ## Security Notes
 
-- **No credentials are committed to this repository.** Test accounts use the public ParaBank demo (`john/demo`) set via environment variables.
+- **No credentials are committed to this repository.** Each run registers its own throwaway ParaBank customer (`tests/auth.setup.ts`); an existing one can be supplied via environment variables.
 - **`.env` is gitignored.** Copy `.env.example` to `.env` locally — never commit `.env`.
 - **API keys are GitHub Secrets** in CI (`ANTHROPIC_API_KEY`). The suite runs without them.
-- **Storage state files** (`playwright/.auth/*.json`) are gitignored — they contain session tokens.
+- **Storage state and generated credentials** (`playwright/.auth/*.json`) are gitignored — they contain session tokens.
 - No real banking credentials, PII, or production systems are used anywhere in this project.
 
 ---
@@ -221,6 +242,7 @@ Artifacts retained per run:
 | [docs/architecture.md](docs/architecture.md) | System architecture with Mermaid diagram |
 | [docs/ai-in-qa.md](docs/ai-in-qa.md) | Deep-dive on each GenAI feature + human oversight |
 | [docs/mcp-setup.md](docs/mcp-setup.md) | Playwright MCP configuration for Claude |
+| [docs/accessibility-findings.md](docs/accessibility-findings.md) | WCAG 2.1 AA audit of ParaBank with suggested fixes |
 
 ---
 
@@ -228,7 +250,7 @@ Artifacts retained per run:
 
 **Neelima Gunduboina**  
 ISTQB Certified | 4+ Years QA | Banking (FLEXCUBE) & Insurance (Royal London)  
-*Positioning for AI-augmented QA roles in 2025*
+[LinkedIn](https://www.linkedin.com/in/neelimagunduboina/) · [Companion Java framework (Selenium + REST Assured + SQL)](https://github.com/Neelima-Gunduboina/qa-portfolio-parabank)
 
 ---
 

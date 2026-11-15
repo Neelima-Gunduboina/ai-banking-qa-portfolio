@@ -79,7 +79,8 @@ Once configured, you can instruct Claude to perform banking flows directly.
 ```
 Using the Playwright browser tool:
 1. Navigate to https://parabank.parasoft.com/parabank/index.htm
-2. Log in with username "john" and password "demo"
+2. Log in with username "<test username>" and password "<test password>"
+   (a run of `npx playwright test --project=setup` registers one and saves it to playwright/.auth/credentials.json)
 3. Click on "Accounts Overview"
 4. Tell me how many accounts are listed and what the total balance is
 5. Navigate to "Transfer Funds" and verify the form loads with account dropdowns
