@@ -41,7 +41,7 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
-      testIgnore: ['**/visual/**', '**/a11y/**'],
+      testIgnore: ['**/api/**', '**/visual/**', '**/a11y/**'],
     },
 
     // Firefox — smoke subset
@@ -66,10 +66,11 @@ export default defineConfig({
       testMatch: ['**/ui/login.spec.ts', '**/ui/dashboard.spec.ts'],
     },
 
-    // API tests — no browser needed
+    // API tests — no browser needed (setup only registers the run's customer)
     {
       name: 'api',
       testMatch: '**/api/**/*.spec.ts',
+      dependencies: ['setup'],
       // ParaBank returns XML unless JSON is requested explicitly.
       use: { extraHTTPHeaders: { Accept: 'application/json' } },
     },

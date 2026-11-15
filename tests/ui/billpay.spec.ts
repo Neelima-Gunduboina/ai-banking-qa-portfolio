@@ -74,17 +74,18 @@ test.describe('Bill Payment', () => {
 
     await billPayPage.submitPayment();
 
-    await expect(
-      page.getByText(/account number.*mismatch|must match/i),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#validationModel-verifyAccount-mismatch')).toHaveText(
+      /the account numbers do not match/i,
+    );
   });
 
   test('TC-B-04: empty form submission shows required field errors', async ({
     billPayPage,
   }) => {
     await billPayPage.submitPayment();
-    // Multiple validation errors should appear
-    const errorCount = await billPayPage['page'].locator('.error, span.error').count();
-    expect(errorCount).toBeGreaterThan(0);
+    // Every required field shows its own validation message
+    const page = billPayPage['page'];
+    await expect(page.locator('#validationModel-name')).toBeVisible();
+    await expect(page.locator('#validationModel-amount-empty')).toBeVisible();
   });
 });

@@ -9,12 +9,18 @@
 
 import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
+import { savedCredentials } from '../../utils/test-user';
 dotenv.config();
 
 const BASE_URL = process.env.BASE_URL ?? 'https://parabank.parasoft.com';
-const USERNAME = process.env.PARABANK_USERNAME ?? 'john';
-const PASSWORD = process.env.PARABANK_PASSWORD ?? 'demo';
 const API_BASE = `${BASE_URL}/parabank/services/bank`;
+
+// The customer registered by tests/auth.setup.ts (or PARABANK_USERNAME/PASSWORD)
+let USERNAME = '';
+let PASSWORD = '';
+test.beforeAll(() => {
+  ({ username: USERNAME, password: PASSWORD } = savedCredentials());
+});
 
 test.describe('Customers API', () => {
   test('TC-API-C-01: login endpoint returns customer object', async ({

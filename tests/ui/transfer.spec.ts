@@ -40,22 +40,32 @@ test.describe('Fund Transfer', () => {
   test('TC-T-03: transfer with zero amount shows validation error', async ({
     page,
   }) => {
-    // Enter 0 amount
+    // Known defect: ParaBank has no amount validation and completes a $0.00
+    // transfer. test.fail() keeps CI green and flags when it is fixed.
+    test.info().annotations.push({
+      type: 'known-defect',
+      description:
+        'DEF-004 https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/blob/main/docs/defects/DEF-004-zero-and-same-account-transfer.md',
+    });
+    test.fail();
+    await page.waitForFunction(
+      () => (document.querySelector('#fromAccountId') as HTMLSelectElement)?.options.length > 0,
+    );
     await page.locator('#amount').fill('0');
     await page.getByRole('button', { name: /transfer/i }).click();
-    await expect(
-      page.getByText(/amount is required|invalid amount/i),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/please enter a valid amount/i)).toBeVisible({ timeout: 10_000 });
   });
 
-  test('TC-T-04: transfer form field labels are accessible', async ({
+  test('TC-T-04: transfer form shows a caption for every field', async ({
     page,
   }) => {
-    // Verify form has proper labels for screen-reader compliance
-    // (Banking compliance: WCAG 2.1 AA)
-    await expect(page.getByText(/amount/i).first()).toBeVisible();
-    await expect(page.getByText(/from account/i).first()).toBeVisible();
-    await expect(page.getByText(/to account/i).first()).toBeVisible();
+    // Captions are checked inside the form only: the page also holds hidden
+    // error messages that mention "amount". Programmatic label association
+    // (WCAG 2.1 AA) is checked separately by the axe-core suite in tests/a11y.
+    const form = page.locator('#transferForm');
+    await expect(form.getByText('Amount:')).toBeVisible();
+    await expect(form.getByText(/from account #/i)).toBeVisible();
+    await expect(form.getByText(/to account #/i)).toBeVisible();
   });
 
   test('TC-T-05: successful fund transfer completes with confirmation', async ({

@@ -12,6 +12,15 @@
 // [x] Negative test assertions match actual ParaBank error messages
 // [x] Each test runs in isolation (storageState overridden to unauthenticated)
 // [x] Tests reviewed — left in ai-generated/ to demonstrate workflow
+//
+// RE-REVIEW (2026-11-15), after the first real run against the live site:
+// [!] john/demo no longer exists (the demo resets) — tests now use the
+//     customer registered by tests/auth.setup.ts
+// [!] The LLM located inputs with getByLabel('Username'/'Password'), but
+//     ParaBank's login inputs have no <label> (see docs/accessibility-findings.md
+//     A11Y-02), so those locators matched nothing — replaced with name selectors.
+// Lesson: "looks plausible" is not "verified" — run generated tests against the
+// real application before signing off the checklist.
 // =============================================================================
 
 /**
@@ -96,7 +105,8 @@ test.describe('REQ-001: Customer Login (AI-generated, human-reviewed)', () => {
     page,
   }) => {
     await loginPage.goto();
-    const passwordInput = page.getByLabel('Password');
+    // Reviewer fix: the LLM assumed a <label>; ParaBank has none (see a11y tests)
+    const passwordInput = page.locator('input[name="password"]');
     await expect(passwordInput).toBeVisible();
     // Verify password masking at DOM level — a security regression test
     const inputType = await passwordInput.getAttribute('type');
@@ -124,6 +134,6 @@ test.describe('REQ-001: Customer Login (AI-generated, human-reviewed)', () => {
     await dashboardPage.logout();
 
     // Verify session terminated
-    await expect(page.getByLabel('Username')).toBeVisible();
+    await expect(page.locator('input[name="username"]')).toBeVisible();
   });
 });

@@ -12,8 +12,11 @@ export class AccountsPage extends BasePage {
     this.page.getByRole('heading', { name: /accounts overview/i });
   private readonly accountsTable = () =>
     this.page.locator('#accountTable');
+  // ParaBank renders the accounts and a final "Total" row into <tbody> via AJAX
+  private readonly accountRows = () =>
+    this.page.locator('#accountTable tbody tr').filter({ has: this.page.locator('a') });
   private readonly totalBalance = () =>
-    this.page.locator('#accountTable tfoot .money').first();
+    this.page.locator('#accountTable tbody tr', { hasText: 'Total' }).locator('td').nth(1);
 
   constructor(page: Page) {
     super(page);
@@ -31,7 +34,8 @@ export class AccountsPage extends BasePage {
 
   /** Returns summary rows from the accounts table. */
   async getAccounts(): Promise<AccountSummary[]> {
-    const rows = this.accountsTable().locator('tbody tr');
+    const rows = this.accountRows();
+    await expect(rows.first()).toBeVisible();
     const count = await rows.count();
     const results: AccountSummary[] = [];
 

@@ -9,7 +9,7 @@ export class DashboardPage extends BasePage {
   private readonly transferFundsLink = () =>
     this.page.getByRole('link', { name: /transfer funds/i });
   private readonly billPaymentLink = () =>
-    this.page.getByRole('link', { name: /bill payment/i });
+    this.page.getByRole('link', { name: 'Bill Pay', exact: true });
   private readonly openAccountLink = () =>
     this.page.getByRole('link', { name: /open new account/i });
   private readonly logoutLink = () =>

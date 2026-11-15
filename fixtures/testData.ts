@@ -1,14 +1,15 @@
 /**
  * testData.ts — Typed, centralized test data factory.
- * Credentials come from environment variables so nothing sensitive is
- * hardcoded. The suite gracefully degrades to placeholder values if env
- * vars are absent, making local setup friction-free.
+ * Nothing sensitive is hardcoded: the valid login is the customer that
+ * tests/auth.setup.ts registers (or PARABANK_USERNAME/PASSWORD if set).
  */
 
 import dotenv from 'dotenv';
+import { savedCredentials, uniqueUsername } from '../utils/test-user';
 dotenv.config();
 
 export interface TestData {
+  /** The customer created (or configured) by tests/auth.setup.ts. Read lazily. */
   credentials: {
     validUsername: string;
     validPassword: string;
@@ -46,8 +47,12 @@ export interface TestData {
 export function makeTestData(): TestData {
   return {
     credentials: {
-      validUsername: process.env.PARABANK_USERNAME ?? 'john',
-      validPassword: process.env.PARABANK_PASSWORD ?? 'demo',
+      get validUsername() {
+        return savedCredentials().username;
+      },
+      get validPassword() {
+        return savedCredentials().password;
+      },
       invalidUsername: 'invalid_user_xyz_9999',
       invalidPassword: 'wrongpass123',
     },
@@ -60,8 +65,10 @@ export function makeTestData(): TestData {
       zipCode: 'EC1A 1BB',
       phone: '07700900000',
       ssn: '123-45-6789',
-      uniqueUsername: () => `neelima_${Date.now()}`,
-      password: 'SecurePass@2024',
+      // Avoid common prefixes: ParaBank rejects any username that starts with
+      // an existing one (DEF-005), and someone has already registered "neelima".
+      uniqueUsername: () => uniqueUsername('reg'),
+      password: 'SecurePass@2026',
     },
     transfer: {
       smallAmount: '10.00',

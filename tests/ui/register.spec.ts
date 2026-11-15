@@ -49,12 +49,44 @@ test.describe('Customer Registration', () => {
 
   test('TC-R-03: empty form submission shows required field errors', async ({
     registerPage,
+    page,
   }) => {
     await registerPage.goto();
     await registerPage.submit();
 
-    const errors = await registerPage['page'].locator('.error, span.error').count();
-    expect(errors).toBeGreaterThan(0);
+    // The server re-renders the form with one message per required field
+    const errors = page.locator('#rightPanel span.error');
+    await expect(errors.first()).toBeVisible();
+    await expect(page.locator('[id="customer.firstName.errors"]')).toHaveText(/first name is required/i);
+    expect(await errors.count()).toBeGreaterThan(5);
+  });
+
+  test('TC-R-05: username that extends an existing one can be registered', async ({
+    registerPage,
+    page,
+    testData,
+  }) => {
+    // Known defect: the duplicate check matches prefixes, so "abc123x" is
+    // rejected as "already exists" when "abc123" is taken.
+    test.info().annotations.push({
+      type: 'known-defect',
+      description:
+        'DEF-005 https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/blob/main/docs/defects/DEF-005-username-prefix-treated-as-duplicate.md',
+    });
+    test.fail();
+    const reg = testData.registration;
+    const base = reg.uniqueUsername();
+
+    await registerPage.goto();
+    await registerPage.fillRegistrationForm({ ...reg, username: base, password: reg.password });
+    await registerPage.submit();
+    await registerPage.assertRegistrationSuccess();
+    await page.context().clearCookies(); // fresh visitor for the second sign-up
+
+    await registerPage.goto();
+    await registerPage.fillRegistrationForm({ ...reg, username: `${base}x`, password: reg.password });
+    await registerPage.submit();
+    await registerPage.assertRegistrationSuccess();
   });
 
   test('TC-R-04: register link visible from login page', async ({

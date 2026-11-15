@@ -33,12 +33,19 @@ test.describe('Login', () => {
     loginPage,
     testData,
   }) => {
+    // Regression guard for DEF-002: on 14 Nov 2026 ParaBank signed unknown
+    // users in as another customer. Not reproducible since the demo reset.
+    test.info().annotations.push({
+      type: 'regression-guard',
+      description:
+        'DEF-002 https://github.com/Neelima-Gunduboina/qa-portfolio-parabank/blob/main/docs/defects/DEF-002-login-accepts-unknown-credentials.md',
+    });
     await loginPage.goto();
     await loginPage.loginExpectFailure(
       testData.credentials.invalidUsername,
       testData.credentials.invalidPassword,
     );
-    await loginPage.assertLoginError();
+    await loginPage.assertLoginError(/could not be verified/i);
   });
 
   test('TC-L-03: login fails with valid username and wrong password', async ({
@@ -50,7 +57,7 @@ test.describe('Login', () => {
       testData.credentials.validUsername,
       testData.credentials.invalidPassword,
     );
-    await loginPage.assertLoginError();
+    await loginPage.assertLoginError(/could not be verified/i);
   });
 
   test('TC-L-04: login fails with blank credentials', async ({
@@ -58,8 +65,7 @@ test.describe('Login', () => {
   }) => {
     await loginPage.goto();
     await loginPage.loginExpectFailure('', '');
-    // Should remain on login page or show error
-    await loginPage.assertLoginError();
+    await loginPage.assertLoginError(/please enter a username and password/i);
   });
 
   test('TC-L-05: login page renders required form elements', async ({
@@ -67,21 +73,27 @@ test.describe('Login', () => {
     page,
   }) => {
     await loginPage.goto();
-    await expect(page.getByLabel('Username')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: /log in/i })).toBeVisible();
+    await expect(loginPage.usernameInput()).toBeVisible();
+    await expect(loginPage.passwordInput()).toBeVisible();
+    await expect(loginPage.loginButton()).toBeVisible();
     await expect(page.getByRole('link', { name: /register/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /forgot/i })).toBeVisible();
   });
 });
 
 test.describe('Logout', () => {
+  // Log in with a separate session: logging out of the shared storageState
+  // session would sign every other test in the run out too.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('TC-L-06: authenticated user can log out', async ({
     page,
+    loginPage,
     dashboardPage,
+    testData,
   }) => {
-    // storageState from config already has auth
-    await page.goto('/parabank/overview.htm');
+    await loginPage.goto();
+    await loginPage.login(testData.credentials.validUsername, testData.credentials.validPassword);
     await expect(
       page.getByRole('link', { name: /accounts overview/i }),
     ).toBeVisible();
@@ -89,6 +101,6 @@ test.describe('Logout', () => {
     await dashboardPage.logout();
 
     // Verify session terminated — login form visible
-    await expect(page.getByLabel('Username')).toBeVisible();
+    await expect(page.locator('input[name="username"]')).toBeVisible();
   });
 });

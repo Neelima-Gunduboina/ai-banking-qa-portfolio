@@ -9,8 +9,6 @@ on:
 
 env:
   BASE_URL: https://parabank.parasoft.com
-  PARABANK_USERNAME: john
-  PARABANK_PASSWORD: demo
   NODE_VERSION: '22'
 
 jobs:
@@ -65,8 +63,6 @@ jobs:
         run: npx playwright test --shard=${{ matrix.shard }}/4
         env:
           BASE_URL: ${{ env.BASE_URL }}
-          PARABANK_USERNAME: ${{ env.PARABANK_USERNAME }}
-          PARABANK_PASSWORD: ${{ env.PARABANK_PASSWORD }}
           # LLM key — set as repository secret to enable GenAI features
           # If absent, self-heal/triage degrade gracefully; tests still run
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -167,8 +163,6 @@ jobs:
         run: npx playwright test tests/api --project=api
         env:
           BASE_URL: ${{ env.BASE_URL }}
-          PARABANK_USERNAME: ${{ env.PARABANK_USERNAME }}
-          PARABANK_PASSWORD: ${{ env.PARABANK_PASSWORD }}
 
       - name: Upload API test results
         if: always()
